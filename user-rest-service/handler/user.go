@@ -2,11 +2,10 @@ package handler
 
 import (
 	"encoding/json"
-	"github.com/paypay3/kakeibo-rest-api-ddd/user-rest-service/errors"
 	"net/http"
 
+	"github.com/paypay3/kakeibo-rest-api-ddd/user-rest-service/errors"
 	"github.com/paypay3/kakeibo-rest-api-ddd/user-rest-service/usecase"
-
 	"github.com/paypay3/kakeibo-rest-api-ddd/user-rest-service/usecase/input"
 )
 

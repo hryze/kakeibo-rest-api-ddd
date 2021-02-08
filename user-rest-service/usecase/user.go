@@ -1,16 +1,14 @@
 package usecase
 
 import (
+	"golang.org/x/xerrors"
+
 	"github.com/paypay3/kakeibo-rest-api-ddd/user-rest-service/domain/userdomain"
-
 	"github.com/paypay3/kakeibo-rest-api-ddd/user-rest-service/domain/vo"
-
 	"github.com/paypay3/kakeibo-rest-api-ddd/user-rest-service/errors"
-
 	"github.com/paypay3/kakeibo-rest-api-ddd/user-rest-service/usecase/input"
 	"github.com/paypay3/kakeibo-rest-api-ddd/user-rest-service/usecase/interfaces"
 	"github.com/paypay3/kakeibo-rest-api-ddd/user-rest-service/usecase/output"
-	"golang.org/x/xerrors"
 )
 
 type UserUsecase interface {

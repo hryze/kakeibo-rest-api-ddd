@@ -3,9 +3,9 @@ package vo
 import (
 	"strings"
 
-	"github.com/paypay3/kakeibo-rest-api-ddd/user-rest-service/errors"
-
 	"golang.org/x/crypto/bcrypt"
+
+	"github.com/paypay3/kakeibo-rest-api-ddd/user-rest-service/errors"
 )
 
 type Password string

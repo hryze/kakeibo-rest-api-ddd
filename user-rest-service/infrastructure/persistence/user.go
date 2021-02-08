@@ -3,14 +3,11 @@ package persistence
 import (
 	"database/sql"
 
-	"github.com/paypay3/kakeibo-rest-api-ddd/user-rest-service/domain/userdomain"
-
-	"github.com/paypay3/kakeibo-rest-api-ddd/user-rest-service/errors"
-
-	"github.com/paypay3/kakeibo-rest-api-ddd/user-rest-service/config"
-
 	"golang.org/x/xerrors"
 
+	"github.com/paypay3/kakeibo-rest-api-ddd/user-rest-service/config"
+	"github.com/paypay3/kakeibo-rest-api-ddd/user-rest-service/domain/userdomain"
+	"github.com/paypay3/kakeibo-rest-api-ddd/user-rest-service/errors"
 	"github.com/paypay3/kakeibo-rest-api-ddd/user-rest-service/infrastructure/persistence/datasource"
 )
 

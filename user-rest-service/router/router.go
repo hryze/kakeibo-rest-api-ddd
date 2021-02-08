@@ -11,18 +11,15 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/paypay3/kakeibo-rest-api-ddd/user-rest-service/handler"
-
-	"github.com/paypay3/kakeibo-rest-api-ddd/user-rest-service/infrastructure/externalapi"
-	"github.com/paypay3/kakeibo-rest-api-ddd/user-rest-service/usecase"
+	"github.com/gorilla/mux"
+	"github.com/joho/godotenv"
+	"github.com/rs/cors"
 
 	"github.com/paypay3/kakeibo-rest-api-ddd/user-rest-service/config"
+	"github.com/paypay3/kakeibo-rest-api-ddd/user-rest-service/handler"
+	"github.com/paypay3/kakeibo-rest-api-ddd/user-rest-service/infrastructure/externalapi"
 	"github.com/paypay3/kakeibo-rest-api-ddd/user-rest-service/infrastructure/persistence"
-
-	"github.com/joho/godotenv"
-
-	"github.com/gorilla/mux"
-	"github.com/rs/cors"
+	"github.com/paypay3/kakeibo-rest-api-ddd/user-rest-service/usecase"
 )
 
 func Run() error {

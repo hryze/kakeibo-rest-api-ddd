@@ -7,8 +7,9 @@ import (
 	"io"
 	"io/ioutil"
 	"net/http"
-	"os"
 	"time"
+
+	"github.com/paypay3/kakeibo-rest-api-ddd/user-rest-service/config"
 
 	"golang.org/x/xerrors"
 
@@ -26,9 +27,11 @@ func NewAccountApi(accountApiHandler *client.AccountApiHandler) *accountApi {
 }
 
 func (a *accountApi) PostInitStandardBudgets(userID string) error {
-	accountHost := os.Getenv("ACCOUNT_HOST")
-	accountPort := os.Getenv("ACCOUNT_PORT")
-	requestURL := fmt.Sprintf("http://%s:%s/standard-budgets", accountHost, accountPort)
+	requestURL := fmt.Sprintf(
+		"http://%s:%d/standard-budgets",
+		config.Env.AccountApi.Host,
+		config.Env.AccountApi.Port,
+	)
 
 	request, err := http.NewRequest(
 		"POST",

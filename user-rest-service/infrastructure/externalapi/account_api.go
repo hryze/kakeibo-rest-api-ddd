@@ -9,10 +9,9 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/paypay3/kakeibo-rest-api-ddd/user-rest-service/config"
-
 	"golang.org/x/xerrors"
 
+	"github.com/paypay3/kakeibo-rest-api-ddd/user-rest-service/config"
 	"github.com/paypay3/kakeibo-rest-api-ddd/user-rest-service/infrastructure/externalapi/client"
 )
 

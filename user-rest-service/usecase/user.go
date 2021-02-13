@@ -6,6 +6,7 @@ import (
 	"github.com/paypay3/kakeibo-rest-api-ddd/user-rest-service/apierrors"
 	"github.com/paypay3/kakeibo-rest-api-ddd/user-rest-service/domain/userdomain"
 	"github.com/paypay3/kakeibo-rest-api-ddd/user-rest-service/domain/vo"
+	"github.com/paypay3/kakeibo-rest-api-ddd/user-rest-service/interfaces/presenter"
 	"github.com/paypay3/kakeibo-rest-api-ddd/user-rest-service/usecase/input"
 	"github.com/paypay3/kakeibo-rest-api-ddd/user-rest-service/usecase/interfaces"
 	"github.com/paypay3/kakeibo-rest-api-ddd/user-rest-service/usecase/output"
@@ -28,7 +29,7 @@ func NewUserUsecase(userRepository userdomain.Repository, accountApi interfaces.
 }
 
 func (u *userUsecase) SignUp(in *input.SignUpUser) (*output.SignUpUser, error) {
-	var userValidationError userdomain.ValidationError
+	var userValidationError presenter.UserValidationError
 
 	userID, err := userdomain.NewUserID(in.UserID)
 	if err != nil {
@@ -103,7 +104,7 @@ func checkForUniqueUser(u *userUsecase, signUpUser *userdomain.SignUpUser) error
 		return nil
 	}
 
-	var userConflictError userdomain.ConflictError
+	var userConflictError presenter.UserConflictError
 
 	if existsUserByUserID {
 		userConflictError.UserID = "このユーザーIDは既に利用されています"

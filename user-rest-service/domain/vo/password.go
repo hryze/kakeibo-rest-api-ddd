@@ -4,8 +4,7 @@ import (
 	"strings"
 
 	"golang.org/x/crypto/bcrypt"
-
-	"github.com/paypay3/kakeibo-rest-api-ddd/user-rest-service/apierrors"
+	"golang.org/x/xerrors"
 )
 
 type Password string
@@ -15,17 +14,28 @@ const (
 	maxPasswordLength = 50
 )
 
+var ErrInvalidPassword = xerrors.New("invalid password")
+
 func NewPassword(password string) (Password, error) {
 	if len(password) < minPasswordLength ||
-		len(password) > maxPasswordLength ||
-		strings.Contains(password, " ") ||
+		len(password) > maxPasswordLength {
+		return "", xerrors.Errorf(
+			"password must be %d or more and %d or less: %s: %w",
+			minPasswordLength, maxPasswordLength, password, ErrInvalidPassword,
+		)
+	}
+
+	if strings.Contains(password, " ") ||
 		strings.Contains(password, "　") {
-		return "", apierrors.ErrInvalidPassword
+		return "", xerrors.Errorf(
+			"password cannot contain spaces: %s: %w",
+			password, ErrInvalidPassword,
+		)
 	}
 
 	hashPassword, err := bcrypt.GenerateFromPassword([]byte(password), 10)
 	if err != nil {
-		return "", err
+		return "", xerrors.Errorf("can't generate hash password: %s", password)
 	}
 
 	return Password(string(hashPassword)), nil

@@ -3,12 +3,11 @@ package persistence
 import (
 	"database/sql"
 
-	"github.com/paypay3/kakeibo-rest-api-ddd/user-rest-service/domain/vo"
-
 	"golang.org/x/xerrors"
 
 	"github.com/paypay3/kakeibo-rest-api-ddd/user-rest-service/apierrors"
 	"github.com/paypay3/kakeibo-rest-api-ddd/user-rest-service/domain/userdomain"
+	"github.com/paypay3/kakeibo-rest-api-ddd/user-rest-service/domain/vo"
 	"github.com/paypay3/kakeibo-rest-api-ddd/user-rest-service/infrastructure/persistence/datasource"
 	"github.com/paypay3/kakeibo-rest-api-ddd/user-rest-service/infrastructure/persistence/db"
 )
@@ -30,23 +29,22 @@ func (r *userRepository) FindSignUpUserByUserID(userID userdomain.UserID) (*user
         SELECT
             user_id,
             name,
-            email,
-            password
+            email
         FROM
             users
         WHERE
             user_id = ?`
 
 	var signUpUserDto datasource.SignUpUser
-	if err := r.MySQLHandler.Conn.QueryRowx(query, userID).StructScan(&signUpUserDto); err != nil {
+	if err := r.MySQLHandler.Conn.QueryRowx(query, userID.Value()).StructScan(&signUpUserDto); err != nil {
 		if xerrors.Is(err, sql.ErrNoRows) {
-			return nil, apierrors.ErrUserNotFound
+			return nil, apierrors.NewNotFoundError(apierrors.NewErrorString("ユーザーが存在しません"))
 		}
 
-		return nil, err
+		return nil, apierrors.NewInternalServerError(apierrors.NewErrorString("Internal Server Error"))
 	}
 
-	var userValidationError apierrors.UserValidationError
+	var userValidationError userdomain.ValidationError
 
 	userIDVo, err := userdomain.NewUserID(signUpUserDto.UserID)
 	if err != nil {
@@ -63,9 +61,7 @@ func (r *userRepository) FindSignUpUserByUserID(userID userdomain.UserID) (*user
 		userValidationError.Email = "メールアドレスが正しくありません"
 	}
 
-	if userValidationError.UserID != "" ||
-		userValidationError.Name != "" ||
-		userValidationError.Email != "" {
+	if !userValidationError.IsEmpty() {
 		return nil, apierrors.NewBadRequestError(&userValidationError)
 	}
 
@@ -79,23 +75,22 @@ func (r *userRepository) FindSignUpUserByEmail(email vo.Email) (*userdomain.Sign
         SELECT
             user_id,
             name,
-            email,
-            password
+            email
         FROM
             users
         WHERE
             email = ?`
 
 	var signUpUserDto datasource.SignUpUser
-	if err := r.MySQLHandler.Conn.QueryRowx(query, email).StructScan(&signUpUserDto); err != nil {
+	if err := r.MySQLHandler.Conn.QueryRowx(query, email.Value()).StructScan(&signUpUserDto); err != nil {
 		if xerrors.Is(err, sql.ErrNoRows) {
-			return nil, apierrors.ErrUserNotFound
+			return nil, apierrors.NewNotFoundError(apierrors.NewErrorString("ユーザーが存在しません"))
 		}
 
-		return nil, err
+		return nil, apierrors.NewInternalServerError(apierrors.NewErrorString("Internal Server Error"))
 	}
 
-	var userValidationError apierrors.UserValidationError
+	var userValidationError userdomain.ValidationError
 
 	userIDVo, err := userdomain.NewUserID(signUpUserDto.UserID)
 	if err != nil {
@@ -112,9 +107,7 @@ func (r *userRepository) FindSignUpUserByEmail(email vo.Email) (*userdomain.Sign
 		userValidationError.Email = "メールアドレスが正しくありません"
 	}
 
-	if userValidationError.UserID != "" ||
-		userValidationError.Name != "" ||
-		userValidationError.Email != "" {
+	if !userValidationError.IsEmpty() {
 		return nil, apierrors.NewBadRequestError(&userValidationError)
 	}
 
@@ -126,12 +119,25 @@ func (r *userRepository) FindSignUpUserByEmail(email vo.Email) (*userdomain.Sign
 func (r *userRepository) CreateSignUpUser(signUpUser *userdomain.SignUpUser) error {
 	query := `
         INSERT INTO users
-            (user_id, name, email, password)
+        (
+            user_id,
+            name,
+            email,
+            password
+        )
         VALUES
-            (?,?,?,?)`
+        (
+            ?,?,?,?
+        )`
 
-	if _, err := r.MySQLHandler.Conn.Exec(query, signUpUser.UserID(), signUpUser.Name(), signUpUser.Email(), signUpUser.Password()); err != nil {
-		return err
+	if _, err := r.MySQLHandler.Conn.Exec(
+		query,
+		signUpUser.UserID().Value(),
+		signUpUser.Name().Value(),
+		signUpUser.Email().Value(),
+		signUpUser.Password().Value(),
+	); err != nil {
+		return apierrors.NewInternalServerError(apierrors.NewErrorString("Internal Server Error"))
 	}
 
 	return nil
@@ -145,7 +151,9 @@ func (r *userRepository) DeleteSignUpUser(signUpUser *userdomain.SignUpUser) err
         WHERE
             user_id = ?`
 
-	_, err := r.MySQLHandler.Conn.Exec(query, signUpUser.UserID())
+	if _, err := r.MySQLHandler.Conn.Exec(query, signUpUser.UserID().Value()); err != nil {
+		return apierrors.NewInternalServerError(apierrors.NewErrorString("Internal Server Error"))
+	}
 
-	return err
+	return nil
 }

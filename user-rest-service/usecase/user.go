@@ -28,7 +28,7 @@ func NewUserUsecase(userRepository userdomain.Repository, accountApi interfaces.
 }
 
 func (u *userUsecase) SignUp(in *input.SignUpUser) (*output.SignUpUser, error) {
-	var userValidationError apierrors.UserValidationError
+	var userValidationError userdomain.ValidationError
 
 	userID, err := userdomain.NewUserID(in.UserID)
 	if err != nil {
@@ -47,41 +47,33 @@ func (u *userUsecase) SignUp(in *input.SignUpUser) (*output.SignUpUser, error) {
 
 	password, err := vo.NewPassword(in.Password)
 	if err != nil {
-		if xerrors.Is(err, apierrors.ErrInvalidPassword) {
+		if xerrors.Is(err, vo.ErrInvalidPassword) {
 			userValidationError.Password = "パスワードを正しく入力してください"
 		} else {
-			return nil, apierrors.NewInternalServerError(apierrors.NewErrorString("Internal Server Error"))
+			return nil, err
 		}
 	}
 
-	if userValidationError.UserID != "" ||
-		userValidationError.Name != "" ||
-		userValidationError.Email != "" ||
-		userValidationError.Password != "" {
+	if !userValidationError.IsEmpty() {
 		return nil, apierrors.NewBadRequestError(&userValidationError)
 	}
 
 	signUpUser := userdomain.NewSignUpUser(userID, name, email, password)
 
 	if err := checkForUniqueUser(u, signUpUser); err != nil {
-		var userConflictError *apierrors.UserConflictError
-		if xerrors.As(err, &userConflictError) {
-			return nil, apierrors.NewConflictError(userConflictError)
-		}
-
-		return nil, apierrors.NewInternalServerError(apierrors.NewErrorString("Internal Server Error"))
+		return nil, err
 	}
 
 	if err := u.userRepository.CreateSignUpUser(signUpUser); err != nil {
-		return nil, apierrors.NewInternalServerError(apierrors.NewErrorString("Internal Server Error"))
+		return nil, err
 	}
 
 	if err := u.accountApi.PostInitStandardBudgets(signUpUser.UserID()); err != nil {
 		if err := u.userRepository.DeleteSignUpUser(signUpUser); err != nil {
-			return nil, apierrors.NewInternalServerError(apierrors.NewErrorString("Internal Server Error"))
+			return nil, err
 		}
 
-		return nil, apierrors.NewInternalServerError(apierrors.NewErrorString("Internal Server Error"))
+		return nil, err
 	}
 
 	return &output.SignUpUser{
@@ -92,24 +84,26 @@ func (u *userUsecase) SignUp(in *input.SignUpUser) (*output.SignUpUser, error) {
 }
 
 func checkForUniqueUser(u *userUsecase, signUpUser *userdomain.SignUpUser) error {
+	var notFoundError *apierrors.NotFoundError
+
 	_, errUserID := u.userRepository.FindSignUpUserByUserID(signUpUser.UserID())
-	if errUserID != nil && !xerrors.Is(errUserID, apierrors.ErrUserNotFound) {
+	if errUserID != nil && !xerrors.As(errUserID, &notFoundError) {
 		return errUserID
 	}
 
 	_, errEmail := u.userRepository.FindSignUpUserByEmail(signUpUser.Email())
-	if errEmail != nil && !xerrors.Is(errEmail, apierrors.ErrUserNotFound) {
+	if errEmail != nil && !xerrors.As(errEmail, &notFoundError) {
 		return errEmail
 	}
 
-	existsUserByUserID := !xerrors.Is(errUserID, apierrors.ErrUserNotFound)
-	existsUserByEmail := !xerrors.Is(errEmail, apierrors.ErrUserNotFound)
+	existsUserByUserID := !xerrors.As(errUserID, &notFoundError)
+	existsUserByEmail := !xerrors.As(errEmail, &notFoundError)
 
 	if !existsUserByUserID && !existsUserByEmail {
 		return nil
 	}
 
-	var userConflictError apierrors.UserConflictError
+	var userConflictError userdomain.ConflictError
 
 	if existsUserByUserID {
 		userConflictError.UserID = "このユーザーIDは既に利用されています"
@@ -119,5 +113,5 @@ func checkForUniqueUser(u *userUsecase, signUpUser *userdomain.SignUpUser) error
 		userConflictError.Email = "このメールアドレスは既に利用されています"
 	}
 
-	return &userConflictError
+	return apierrors.NewConflictError(&userConflictError)
 }

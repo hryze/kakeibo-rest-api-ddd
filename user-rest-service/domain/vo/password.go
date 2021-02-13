@@ -17,8 +17,7 @@ const (
 var ErrInvalidPassword = xerrors.New("invalid password")
 
 func NewPassword(password string) (Password, error) {
-	if len(password) < minPasswordLength ||
-		len(password) > maxPasswordLength {
+	if l := len(password); l < minPasswordLength || l > maxPasswordLength {
 		return "", xerrors.Errorf(
 			"password must be %d or more and %d or less: %s: %w",
 			minPasswordLength, maxPasswordLength, password, ErrInvalidPassword,

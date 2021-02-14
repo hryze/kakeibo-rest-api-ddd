@@ -1,29 +1,19 @@
 package config
 
 import (
-	"flag"
 	"fmt"
 	"os"
 	"time"
 
-	"github.com/joho/godotenv"
 	"github.com/kelseyhightower/envconfig"
 )
 
 var Env ENV
 
 func init() {
-	isLocal := flag.Bool("local", false, "Please specify -local flag")
-	flag.Parse()
+	env := os.Getenv("GO_ENV")
 
-	if *isLocal {
-		if err := godotenv.Load("../../development.env"); err != nil {
-			fmt.Fprintln(os.Stderr, err)
-			os.Exit(1)
-		}
-	}
-
-	if err := envconfig.Process("", &Env); err != nil {
+	if err := envconfig.Process(env, &Env); err != nil {
 		fmt.Fprintln(os.Stderr, err)
 		os.Exit(1)
 	}

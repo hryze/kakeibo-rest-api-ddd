@@ -1,6 +1,10 @@
 package usecase
 
 import (
+	"time"
+
+	"github.com/google/uuid"
+	"golang.org/x/crypto/bcrypt"
 	"golang.org/x/xerrors"
 
 	"github.com/paypay3/kakeibo-rest-api-ddd/user-rest-service/apierrors"
@@ -14,6 +18,7 @@ import (
 
 type UserUsecase interface {
 	SignUp(in *input.SignUpUser) (*output.SignUpUser, error)
+	Login(in *input.LoginUser) (*output.LoginUser, error)
 }
 
 type userUsecase struct {
@@ -81,6 +86,65 @@ func (u *userUsecase) SignUp(in *input.SignUpUser) (*output.SignUpUser, error) {
 		UserID: signUpUser.UserID().Value(),
 		Name:   signUpUser.Name().Value(),
 		Email:  signUpUser.Email().Value(),
+	}, nil
+}
+
+func (u *userUsecase) Login(in *input.LoginUser) (*output.LoginUser, error) {
+	var userValidationError presenter.UserValidationError
+
+	email, err := vo.NewEmail(in.Email)
+	if err != nil {
+		userValidationError.Email = "メールアドレスを正しく入力してください"
+	}
+
+	password, err := vo.NewPassword(in.Password)
+	if err != nil {
+		if xerrors.Is(err, vo.ErrInvalidPassword) {
+			userValidationError.Password = "パスワードを正しく入力してください"
+		} else {
+			return nil, err
+		}
+	}
+
+	if !userValidationError.IsEmpty() {
+		return nil, apierrors.NewBadRequestError(&userValidationError)
+	}
+
+	loginUser := userdomain.NewLoginUser(email, password)
+
+	dbLoginUser, err := u.userRepository.FindLoginUserByEmail(loginUser.Email())
+	if err != nil {
+		var notFoundError *apierrors.NotFoundError
+		if xerrors.As(err, &notFoundError) {
+			return nil, apierrors.NewAuthenticationError(apierrors.NewErrorString("認証に失敗しました"))
+		}
+
+		return nil, err
+	}
+
+	hashPassword := dbLoginUser.Password().Value()
+
+	if err := bcrypt.CompareHashAndPassword([]byte(hashPassword), []byte(in.Password)); err != nil {
+		return nil, apierrors.NewAuthenticationError(apierrors.NewErrorString("認証に失敗しました"))
+	}
+
+	sessionID := uuid.New().String()
+	expiration := 86400 * 30
+
+	if err := u.userRepository.AddSessionID(sessionID, dbLoginUser.UserID(), expiration); err != nil {
+		return nil, err
+	}
+
+	cookieInfo := output.CookieInfo{
+		SessionID: sessionID,
+		Expires:   time.Now().Add(time.Duration(expiration) * time.Second),
+	}
+
+	return &output.LoginUser{
+		UserID: dbLoginUser.UserID().Value(),
+		Name:   dbLoginUser.Name().Value(),
+		Email:  dbLoginUser.Email().Value(),
+		Cookie: cookieInfo,
 	}, nil
 }
 

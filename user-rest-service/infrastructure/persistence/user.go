@@ -158,3 +158,66 @@ func (r *userRepository) DeleteSignUpUser(signUpUser *userdomain.SignUpUser) err
 
 	return nil
 }
+
+func (r *userRepository) FindLoginUserByEmail(email vo.Email) (*userdomain.LoginUser, error) {
+	query := `
+        SELECT
+            user_id,
+            name,
+            email,
+            password
+        FROM 
+            users
+        WHERE
+            email = ?`
+
+	var loginUserDto datasource.LoginUser
+	if err := r.MySQLHandler.Conn.QueryRowx(query, email.Value()).StructScan(&loginUserDto); err != nil {
+		if xerrors.Is(err, sql.ErrNoRows) {
+			return nil, apierrors.NewNotFoundError(apierrors.NewErrorString("ユーザーが存在しません"))
+		}
+
+		return nil, apierrors.NewInternalServerError(apierrors.NewErrorString("Internal Server Error"))
+	}
+
+	var userValidationError presenter.UserValidationError
+
+	userIDVo, err := userdomain.NewUserID(loginUserDto.UserID)
+	if err != nil {
+		userValidationError.UserID = "ユーザーIDが正しくありません"
+	}
+
+	nameVo, err := userdomain.NewName(loginUserDto.Name)
+	if err != nil {
+		userValidationError.Name = "名前が正しくありません"
+	}
+
+	emailVo, err := vo.NewEmail(loginUserDto.Email)
+	if err != nil {
+		userValidationError.Email = "メールアドレスが正しくありません"
+	}
+
+	passwordVo, err := vo.NewHashPassword(loginUserDto.Password)
+	if err != nil {
+		userValidationError.Password = "パスワードが正しくありません"
+	}
+
+	if !userValidationError.IsEmpty() {
+		return nil, apierrors.NewBadRequestError(&userValidationError)
+	}
+
+	loginUser := userdomain.NewLoginUserFromDataSource(userIDVo, nameVo, emailVo, passwordVo)
+
+	return loginUser, nil
+}
+
+func (r *userRepository) AddSessionID(sessionID string, userID userdomain.UserID, expiration int) error {
+	conn := r.RedisHandler.Pool.Get()
+	defer conn.Close()
+
+	if _, err := conn.Do("SET", sessionID, userID.Value(), "EX", expiration); err != nil {
+		return apierrors.NewInternalServerError(apierrors.NewErrorString("Internal Server Error"))
+	}
+
+	return nil
+}

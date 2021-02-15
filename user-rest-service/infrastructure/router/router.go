@@ -44,6 +44,7 @@ func Run() error {
 
 	router := mux.NewRouter()
 	router.HandleFunc("/signup", userHandler.SignUp).Methods(http.MethodPost)
+	router.HandleFunc("/login", userHandler.Login).Methods(http.MethodPost)
 
 	corsWrapper := cors.New(cors.Options{
 		AllowedOrigins:   config.Env.Cors.AllowedOrigins,

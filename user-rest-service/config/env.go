@@ -20,41 +20,41 @@ func init() {
 }
 
 type ENV struct {
-	Server     server
-	Cors       cors
-	Cookie     cookie
-	MySQL      mysql
-	Redis      redis
-	AccountApi accountApi
+	Server
+	Cors
+	Cookie
+	MySQL
+	Redis
+	AccountApi
 }
 
-type server struct {
+type Server struct {
 	Port int `envconfig:"SERVER_PORT" required:"true"`
 }
 
-type cors struct {
+type Cors struct {
 	AllowedOrigins []string `envconfig:"CORS_ALLOWED_ORIGINS" required:"true"`
 }
 
-type cookie struct {
+type Cookie struct {
 	Domain string `envconfig:"COOKIE_DOMAIN" required:"true"`
 }
 
-type mysql struct {
+type MySQL struct {
 	Dsn             string        `envconfig:"MYSQL_DSN"               required:"true"`
 	MaxConn         int           `envconfig:"MYSQL_MAX_CONN"          default:"25"`
 	MaxIdleConn     int           `envconfig:"MYSQL_MAX_IDLE"          default:"25"`
 	MaxConnLifetime time.Duration `envconfig:"MYSQL_MAX_CONN_LIFETIME" default:"300s"`
 }
 
-type redis struct {
+type Redis struct {
 	Dsn             string        `envconfig:"REDIS_DSN"               required:"true"`
 	MaxConn         int           `envconfig:"REDIS_MAX_CONN"          default:"25"`
 	MaxIdleConn     int           `envconfig:"REDIS_MAX_IDLE"          default:"25"`
 	MaxConnLifetime time.Duration `envconfig:"REDIS_MAX_CONN_LIFETIME" default:"300s"`
 }
 
-type accountApi struct {
+type AccountApi struct {
 	Host string `envconfig:"ACCOUNT_HOST" required:"true"`
 	Port int    `envconfig:"ACCOUNT_PORT" required:"true"`
 }

@@ -1,4 +1,4 @@
-package interfaces
+package gateway
 
 import "github.com/paypay3/kakeibo-rest-api-ddd/user-rest-service/domain/userdomain"
 

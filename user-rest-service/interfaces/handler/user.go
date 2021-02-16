@@ -3,6 +3,7 @@ package handler
 import (
 	"encoding/json"
 	"net/http"
+	"time"
 
 	"github.com/paypay3/kakeibo-rest-api-ddd/user-rest-service/apierrors"
 	"github.com/paypay3/kakeibo-rest-api-ddd/user-rest-service/config"
@@ -51,9 +52,9 @@ func (h *userHandler) Login(w http.ResponseWriter, r *http.Request) {
 	}
 
 	http.SetCookie(w, &http.Cookie{
-		Name:     "session_id",
+		Name:     config.Env.Cookie.Name,
 		Value:    out.Cookie.SessionID,
-		Expires:  out.Cookie.Expires,
+		Expires:  time.Now().Add(config.Env.Cookie.Expiration),
 		Domain:   config.Env.Cookie.Domain,
 		Secure:   config.Env.Cookie.Secure,
 		HttpOnly: true,

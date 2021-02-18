@@ -10,8 +10,9 @@ import (
 type Password string
 
 const (
-	minPasswordLength = 8
-	maxPasswordLength = 50
+	minPasswordLength  = 8
+	maxPasswordLength  = 50
+	hashPasswordLength = 60
 )
 
 var ErrInvalidPassword = xerrors.New("invalid password")
@@ -40,6 +41,28 @@ func NewPassword(password string) (Password, error) {
 	return Password(string(hashPassword)), nil
 }
 
+func NewHashPassword(hashPassword string) (Password, error) {
+	if len(hashPassword) != hashPasswordLength {
+		return "", xerrors.Errorf(
+			"hash password must be %d characters: %s: %w",
+			hashPasswordLength, hashPassword, ErrInvalidPassword,
+		)
+	}
+
+	return Password(string(hashPassword)), nil
+}
+
 func (p Password) Value() string {
 	return string(p)
+}
+
+func (p Password) Equals(inputPassword string) error {
+	if err := bcrypt.CompareHashAndPassword([]byte(p.Value()), []byte(inputPassword)); err != nil {
+		return xerrors.Errorf(
+			"hash password %s and input password %s are not equal: %w",
+			p.Value(), inputPassword, ErrInvalidPassword,
+		)
+	}
+
+	return nil
 }

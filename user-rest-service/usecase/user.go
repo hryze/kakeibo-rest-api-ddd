@@ -1,6 +1,7 @@
 package usecase
 
 import (
+	"github.com/google/uuid"
 	"golang.org/x/xerrors"
 
 	"github.com/paypay3/kakeibo-rest-api-ddd/user-rest-service/apierrors"
@@ -10,20 +11,24 @@ import (
 	"github.com/paypay3/kakeibo-rest-api-ddd/user-rest-service/usecase/gateway"
 	"github.com/paypay3/kakeibo-rest-api-ddd/user-rest-service/usecase/input"
 	"github.com/paypay3/kakeibo-rest-api-ddd/user-rest-service/usecase/output"
+	"github.com/paypay3/kakeibo-rest-api-ddd/user-rest-service/usecase/sessionstore"
 )
 
 type UserUsecase interface {
 	SignUp(in *input.SignUpUser) (*output.SignUpUser, error)
+	Login(in *input.LoginUser) (*output.LoginUser, error)
 }
 
 type userUsecase struct {
 	userRepository userdomain.Repository
+	sessionStore   sessionstore.SessionStore
 	accountApi     gateway.AccountApi
 }
 
-func NewUserUsecase(userRepository userdomain.Repository, accountApi gateway.AccountApi) *userUsecase {
+func NewUserUsecase(userRepository userdomain.Repository, sessionStore sessionstore.SessionStore, accountApi gateway.AccountApi) *userUsecase {
 	return &userUsecase{
 		userRepository: userRepository,
+		sessionStore:   sessionStore,
 		accountApi:     accountApi,
 	}
 }
@@ -81,6 +86,59 @@ func (u *userUsecase) SignUp(in *input.SignUpUser) (*output.SignUpUser, error) {
 		UserID: signUpUser.UserID().Value(),
 		Name:   signUpUser.Name().Value(),
 		Email:  signUpUser.Email().Value(),
+	}, nil
+}
+
+func (u *userUsecase) Login(in *input.LoginUser) (*output.LoginUser, error) {
+	var userValidationError presenter.UserValidationError
+
+	email, err := vo.NewEmail(in.Email)
+	if err != nil {
+		userValidationError.Email = "メールアドレスを正しく入力してください"
+	}
+
+	password, err := vo.NewPassword(in.Password)
+	if err != nil {
+		if xerrors.Is(err, vo.ErrInvalidPassword) {
+			userValidationError.Password = "パスワードを正しく入力してください"
+		} else {
+			return nil, err
+		}
+	}
+
+	if !userValidationError.IsEmpty() {
+		return nil, apierrors.NewBadRequestError(&userValidationError)
+	}
+
+	loginUser := userdomain.NewLoginUser(email, password)
+
+	dbLoginUser, err := u.userRepository.FindLoginUserByEmail(loginUser.Email())
+	if err != nil {
+		var notFoundError *apierrors.NotFoundError
+		if xerrors.As(err, &notFoundError) {
+			return nil, apierrors.NewAuthenticationError(apierrors.NewErrorString("認証に失敗しました"))
+		}
+
+		return nil, err
+	}
+
+	if err := dbLoginUser.Password().Equals(in.Password); err != nil {
+		return nil, apierrors.NewAuthenticationError(apierrors.NewErrorString("認証に失敗しました"))
+	}
+
+	sessionID := uuid.New().String()
+
+	if err := u.sessionStore.StoreLoginInfo(sessionID, dbLoginUser.UserID()); err != nil {
+		return nil, err
+	}
+
+	return &output.LoginUser{
+		UserID: dbLoginUser.UserID().Value(),
+		Name:   dbLoginUser.Name().Value(),
+		Email:  dbLoginUser.Email().Value(),
+		Cookie: output.CookieInfo{
+			SessionID: sessionID,
+		},
 	}, nil
 }
 

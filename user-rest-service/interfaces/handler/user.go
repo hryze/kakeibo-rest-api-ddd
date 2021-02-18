@@ -5,6 +5,8 @@ import (
 	"net/http"
 	"time"
 
+	"golang.org/x/xerrors"
+
 	"github.com/paypay3/kakeibo-rest-api-ddd/user-rest-service/apierrors"
 	"github.com/paypay3/kakeibo-rest-api-ddd/user-rest-service/config"
 	"github.com/paypay3/kakeibo-rest-api-ddd/user-rest-service/interfaces/presenter"
@@ -61,4 +63,28 @@ func (h *userHandler) Login(w http.ResponseWriter, r *http.Request) {
 	})
 
 	presenter.JSON(w, http.StatusCreated, out)
+}
+
+func (h *userHandler) Logout(w http.ResponseWriter, r *http.Request) {
+	cookie, err := r.Cookie(config.Env.Cookie.Name)
+	if xerrors.Is(err, http.ErrNoCookie) {
+		presenter.ErrorJSON(w, apierrors.NewBadRequestError(apierrors.NewErrorString("ログアウト済みです")))
+		return
+	}
+
+	cookieInfo := &input.CookieInfo{SessionID: cookie.Value}
+
+	if err := h.userUsecase.Logout(cookieInfo); err != nil {
+		presenter.ErrorJSON(w, err)
+		return
+	}
+
+	http.SetCookie(w, &http.Cookie{
+		Name:     config.Env.Cookie.Name,
+		Value:    "",
+		Expires:  time.Now(),
+		HttpOnly: true,
+	})
+
+	presenter.JSON(w, http.StatusOK, presenter.NewSuccessString("ログアウトしました"))
 }

@@ -27,3 +27,14 @@ func (s *sessionStore) StoreLoginInfo(sessionID string, userID userdomain.UserID
 
 	return nil
 }
+
+func (s *sessionStore) DeleteLoginInfo(sessionID string) error {
+	conn := s.RedisHandler.Pool.Get()
+	defer conn.Close()
+
+	if _, err := conn.Do("DEL", sessionID); err != nil {
+		return apierrors.NewInternalServerError(apierrors.NewErrorString("Internal Server Error"))
+	}
+
+	return nil
+}

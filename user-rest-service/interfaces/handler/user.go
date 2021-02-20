@@ -79,12 +79,8 @@ func (h *userHandler) Logout(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	http.SetCookie(w, &http.Cookie{
-		Name:     config.Env.Cookie.Name,
-		Value:    "",
-		Expires:  time.Now(),
-		HttpOnly: true,
-	})
+	cookie.MaxAge = -1
+	http.SetCookie(w, cookie)
 
 	presenter.JSON(w, http.StatusOK, presenter.NewSuccessString("ログアウトしました"))
 }

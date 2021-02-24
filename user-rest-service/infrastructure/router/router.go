@@ -56,7 +56,7 @@ func Run() error {
 	router.HandleFunc("/signup", userHandler.SignUp).Methods(http.MethodPost)
 	router.HandleFunc("/login", userHandler.Login).Methods(http.MethodPost)
 	router.HandleFunc("/logout", userHandler.Logout).Methods(http.MethodDelete)
-	router.HandleFunc("/user", userHandler.FetchUserInfo).Methods(http.MethodGet)
+	router.HandleFunc("/user", userHandler.FetchLoginUser).Methods(http.MethodGet)
 
 	srv := &http.Server{
 		Addr:    fmt.Sprintf(":%d", config.Env.Server.Port),

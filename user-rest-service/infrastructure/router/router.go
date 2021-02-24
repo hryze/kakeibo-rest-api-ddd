@@ -17,10 +17,10 @@ import (
 	"github.com/paypay3/kakeibo-rest-api-ddd/user-rest-service/infrastructure/auth/imdb"
 	"github.com/paypay3/kakeibo-rest-api-ddd/user-rest-service/infrastructure/externalapi"
 	"github.com/paypay3/kakeibo-rest-api-ddd/user-rest-service/infrastructure/externalapi/client"
+	"github.com/paypay3/kakeibo-rest-api-ddd/user-rest-service/infrastructure/middleware"
 	"github.com/paypay3/kakeibo-rest-api-ddd/user-rest-service/infrastructure/persistence"
 	"github.com/paypay3/kakeibo-rest-api-ddd/user-rest-service/infrastructure/persistence/rdb"
 	"github.com/paypay3/kakeibo-rest-api-ddd/user-rest-service/interfaces/handler"
-	"github.com/paypay3/kakeibo-rest-api-ddd/user-rest-service/interfaces/middleware"
 	"github.com/paypay3/kakeibo-rest-api-ddd/user-rest-service/usecase"
 )
 

@@ -207,7 +207,7 @@ func (r *userRepository) FindLoginUserByEmail(email vo.Email) (*userdomain.Login
 	return loginUser, nil
 }
 
-func (r *userRepository) FindLoginUserByUserID(userID userdomain.UserID) (*userdomain.LoginUser, error) {
+func (r *userRepository) FindLoginUserByUserID(userID userdomain.UserID) (*userdomain.LoginUserWithoutPassword, error) {
 	query := `
         SELECT
             user_id,
@@ -248,7 +248,7 @@ func (r *userRepository) FindLoginUserByUserID(userID userdomain.UserID) (*userd
 		return nil, apierrors.NewBadRequestError(&userValidationError)
 	}
 
-	loginUser := userdomain.NewLoginUserWithNoPassword(userIDVo, nameVo, emailVo)
+	loginUser := userdomain.NewLoginUserWithoutPassword(userIDVo, nameVo, emailVo)
 
 	return loginUser, nil
 }

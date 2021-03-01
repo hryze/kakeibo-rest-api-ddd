@@ -19,6 +19,7 @@ import (
 	"github.com/paypay3/kakeibo-rest-api-ddd/user-rest-service/infrastructure/externalapi/client"
 	"github.com/paypay3/kakeibo-rest-api-ddd/user-rest-service/infrastructure/middleware"
 	"github.com/paypay3/kakeibo-rest-api-ddd/user-rest-service/infrastructure/persistence"
+	"github.com/paypay3/kakeibo-rest-api-ddd/user-rest-service/infrastructure/persistence/query"
 	"github.com/paypay3/kakeibo-rest-api-ddd/user-rest-service/infrastructure/persistence/rdb"
 	"github.com/paypay3/kakeibo-rest-api-ddd/user-rest-service/interfaces/handler"
 	"github.com/paypay3/kakeibo-rest-api-ddd/user-rest-service/usecase"
@@ -40,9 +41,10 @@ func Run() error {
 	accountApiHandler := client.NewAccountApiHandler()
 
 	userRepository := persistence.NewUserRepository(mySQLHandler)
+	userQueryService := query.NewUserQueryService(mySQLHandler)
 	sessionStore := auth.NewSessionStore(redisHandler)
 	accountApi := externalapi.NewAccountApi(accountApiHandler)
-	userUsecase := usecase.NewUserUsecase(userRepository, sessionStore, accountApi)
+	userUsecase := usecase.NewUserUsecase(userRepository, userQueryService, sessionStore, accountApi)
 	userHandler := handler.NewUserHandler(userUsecase)
 
 	router := mux.NewRouter()

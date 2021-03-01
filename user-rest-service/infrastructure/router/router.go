@@ -11,14 +11,15 @@ import (
 	"time"
 
 	"github.com/gorilla/mux"
-	"github.com/rs/cors"
 
 	"github.com/paypay3/kakeibo-rest-api-ddd/user-rest-service/config"
 	"github.com/paypay3/kakeibo-rest-api-ddd/user-rest-service/infrastructure/auth"
 	"github.com/paypay3/kakeibo-rest-api-ddd/user-rest-service/infrastructure/auth/imdb"
 	"github.com/paypay3/kakeibo-rest-api-ddd/user-rest-service/infrastructure/externalapi"
 	"github.com/paypay3/kakeibo-rest-api-ddd/user-rest-service/infrastructure/externalapi/client"
+	"github.com/paypay3/kakeibo-rest-api-ddd/user-rest-service/infrastructure/middleware"
 	"github.com/paypay3/kakeibo-rest-api-ddd/user-rest-service/infrastructure/persistence"
+	"github.com/paypay3/kakeibo-rest-api-ddd/user-rest-service/infrastructure/persistence/query"
 	"github.com/paypay3/kakeibo-rest-api-ddd/user-rest-service/infrastructure/persistence/rdb"
 	"github.com/paypay3/kakeibo-rest-api-ddd/user-rest-service/interfaces/handler"
 	"github.com/paypay3/kakeibo-rest-api-ddd/user-rest-service/usecase"
@@ -40,26 +41,28 @@ func Run() error {
 	accountApiHandler := client.NewAccountApiHandler()
 
 	userRepository := persistence.NewUserRepository(mySQLHandler)
+	userQueryService := query.NewUserQueryService(mySQLHandler)
 	sessionStore := auth.NewSessionStore(redisHandler)
 	accountApi := externalapi.NewAccountApi(accountApiHandler)
-	userUsecase := usecase.NewUserUsecase(userRepository, sessionStore, accountApi)
+	userUsecase := usecase.NewUserUsecase(userRepository, userQueryService, sessionStore, accountApi)
 	userHandler := handler.NewUserHandler(userUsecase)
 
 	router := mux.NewRouter()
+
+	// register middleware
+	router.Use(
+		middleware.NewCorsMiddlewareFunc(),
+		middleware.NewAuthMiddlewareFunc(sessionStore),
+	)
+
 	router.HandleFunc("/signup", userHandler.SignUp).Methods(http.MethodPost)
 	router.HandleFunc("/login", userHandler.Login).Methods(http.MethodPost)
 	router.HandleFunc("/logout", userHandler.Logout).Methods(http.MethodDelete)
-
-	corsWrapper := cors.New(cors.Options{
-		AllowedOrigins:   config.Env.Cors.AllowedOrigins,
-		AllowedMethods:   []string{http.MethodGet, http.MethodPost, http.MethodPut, http.MethodDelete, http.MethodOptions},
-		AllowedHeaders:   []string{"Origin", "Content-Type", "Accept", "Accept-Language"},
-		AllowCredentials: true,
-	})
+	router.HandleFunc("/user", userHandler.FetchLoginUser).Methods(http.MethodGet)
 
 	srv := &http.Server{
 		Addr:    fmt.Sprintf(":%d", config.Env.Server.Port),
-		Handler: corsWrapper.Handler(router),
+		Handler: router,
 	}
 
 	errorCh := make(chan error, 1)

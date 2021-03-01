@@ -202,7 +202,7 @@ func (r *userRepository) FindLoginUserByEmail(email vo.Email) (*userdomain.Login
 		return nil, apierrors.NewBadRequestError(&userValidationError)
 	}
 
-	loginUser := userdomain.NewLoginUserFromDataSource(userIDVo, nameVo, emailVo, passwordVo)
+	loginUser := userdomain.NewLoginUserWithHashPassword(userIDVo, nameVo, emailVo, passwordVo)
 
 	return loginUser, nil
 }

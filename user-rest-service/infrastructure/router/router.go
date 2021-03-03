@@ -49,20 +49,18 @@ func Run() error {
 
 	router := mux.NewRouter()
 
-	// register middleware
-	router.Use(
-		middleware.NewCorsMiddlewareFunc(),
-		middleware.NewAuthMiddlewareFunc(sessionStore),
-	)
+	// Register auth middleware.
+	router.Use(middleware.NewAuthMiddlewareFunc(sessionStore))
 
 	router.HandleFunc("/signup", userHandler.SignUp).Methods(http.MethodPost)
 	router.HandleFunc("/login", userHandler.Login).Methods(http.MethodPost)
 	router.HandleFunc("/logout", userHandler.Logout).Methods(http.MethodDelete)
 	router.HandleFunc("/user", userHandler.FetchLoginUser).Methods(http.MethodGet)
 
+	// Apply cors middleware to top-level router.
 	srv := &http.Server{
 		Addr:    fmt.Sprintf(":%d", config.Env.Server.Port),
-		Handler: router,
+		Handler: middleware.NewCorsMiddlewareFunc()(router),
 	}
 
 	errorCh := make(chan error, 1)

@@ -40,12 +40,17 @@ func Run() error {
 
 	accountApiHandler := client.NewAccountApiHandler()
 
-	userRepository := persistence.NewUserRepository(mySQLHandler)
-	userQueryService := query.NewUserQueryService(mySQLHandler)
 	sessionStore := auth.NewSessionStore(redisHandler)
 	accountApi := externalapi.NewAccountApi(accountApiHandler)
+
+	userRepository := persistence.NewUserRepository(mySQLHandler)
+	userQueryService := query.NewUserQueryService(mySQLHandler)
 	userUsecase := usecase.NewUserUsecase(userRepository, userQueryService, sessionStore, accountApi)
 	userHandler := handler.NewUserHandler(userUsecase)
+
+	groupQueryService := query.NewGroupQueryServiceImpl(mySQLHandler)
+	groupUsecase := usecase.NewGroupUsecase(groupQueryService)
+	groupHandler := handler.NewGroupHandler(groupUsecase)
 
 	router := mux.NewRouter()
 
@@ -56,6 +61,7 @@ func Run() error {
 	router.HandleFunc("/login", userHandler.Login).Methods(http.MethodPost)
 	router.HandleFunc("/logout", userHandler.Logout).Methods(http.MethodDelete)
 	router.HandleFunc("/user", userHandler.FetchLoginUser).Methods(http.MethodGet)
+	router.HandleFunc("/groups", groupHandler.FetchGroupList).Methods(http.MethodGet)
 
 	// Apply cors middleware to top-level router.
 	srv := &http.Server{

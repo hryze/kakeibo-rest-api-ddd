@@ -1,9 +1,6 @@
 package usecase
 
 import (
-	"github.com/paypay3/kakeibo-rest-api-ddd/user-rest-service/apierrors"
-	"github.com/paypay3/kakeibo-rest-api-ddd/user-rest-service/domain/userdomain"
-	"github.com/paypay3/kakeibo-rest-api-ddd/user-rest-service/interfaces/presenter"
 	"github.com/paypay3/kakeibo-rest-api-ddd/user-rest-service/usecase/input"
 	"github.com/paypay3/kakeibo-rest-api-ddd/user-rest-service/usecase/output"
 	"github.com/paypay3/kakeibo-rest-api-ddd/user-rest-service/usecase/queryservice"
@@ -24,12 +21,7 @@ func NewGroupUsecase(groupQueryService queryservice.GroupQueryService) *groupUse
 }
 
 func (u *groupUsecase) FetchGroupList(in *input.AuthenticatedUser) (*output.GroupList, error) {
-	userID, err := userdomain.NewUserID(in.UserID)
-	if err != nil {
-		return nil, apierrors.NewBadRequestError(&presenter.UserValidationError{UserID: "ユーザーIDが正しくありません"})
-	}
-
-	groupList, err := u.groupQueryService.FetchGroupList(userID)
+	groupList, err := u.groupQueryService.FetchGroupList(in.UserID)
 	if err != nil {
 		return nil, err
 	}

@@ -4,7 +4,6 @@ import (
 	"strings"
 
 	"github.com/paypay3/kakeibo-rest-api-ddd/user-rest-service/apierrors"
-	"github.com/paypay3/kakeibo-rest-api-ddd/user-rest-service/domain/userdomain"
 	"github.com/paypay3/kakeibo-rest-api-ddd/user-rest-service/infrastructure/persistence/rdb"
 	"github.com/paypay3/kakeibo-rest-api-ddd/user-rest-service/usecase/output"
 )
@@ -17,7 +16,7 @@ func NewGroupQueryServiceImpl(mysqlHandler *rdb.MySQLHandler) *groupQueryService
 	return &groupQueryServiceImpl{mysqlHandler}
 }
 
-func (r *groupQueryServiceImpl) FetchGroupList(userID userdomain.UserID) (*output.GroupList, error) {
+func (r *groupQueryServiceImpl) FetchGroupList(userID string) (*output.GroupList, error) {
 	approvedGroupList, err := r.fetchApprovedGroupList(userID)
 	if err != nil {
 		return nil, err
@@ -95,7 +94,7 @@ func generateGroupIDList(approvedGroupList []output.ApprovedGroup, unapprovedGro
 	return groupIDList
 }
 
-func (r *groupQueryServiceImpl) fetchApprovedGroupList(userID userdomain.UserID) ([]output.ApprovedGroup, error) {
+func (r *groupQueryServiceImpl) fetchApprovedGroupList(userID string) ([]output.ApprovedGroup, error) {
 	query := `
         SELECT
             group_users.group_id group_id,
@@ -109,7 +108,7 @@ func (r *groupQueryServiceImpl) fetchApprovedGroupList(userID userdomain.UserID)
         WHERE
             group_users.user_id = ?`
 
-	rows, err := r.MySQLHandler.Conn.Queryx(query, userID.Value())
+	rows, err := r.MySQLHandler.Conn.Queryx(query, userID)
 	if err != nil {
 		return nil, apierrors.NewInternalServerError(apierrors.NewErrorString("Internal Server Error"))
 	}
@@ -136,7 +135,7 @@ func (r *groupQueryServiceImpl) fetchApprovedGroupList(userID userdomain.UserID)
 	return approvedGroupList, nil
 }
 
-func (r *groupQueryServiceImpl) fetchUnApprovedGroupList(userID userdomain.UserID) ([]output.UnapprovedGroup, error) {
+func (r *groupQueryServiceImpl) fetchUnApprovedGroupList(userID string) ([]output.UnapprovedGroup, error) {
 	query := `
         SELECT
             group_unapproved_users.group_id group_id,
@@ -150,7 +149,7 @@ func (r *groupQueryServiceImpl) fetchUnApprovedGroupList(userID userdomain.UserI
         WHERE
             group_unapproved_users.user_id = ?`
 
-	rows, err := r.MySQLHandler.Conn.Queryx(query, userID.Value())
+	rows, err := r.MySQLHandler.Conn.Queryx(query, userID)
 	if err != nil {
 		return nil, apierrors.NewInternalServerError(apierrors.NewErrorString("Internal Server Error"))
 	}

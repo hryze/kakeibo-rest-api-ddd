@@ -1,7 +1,7 @@
 package query
 
 import (
-	"strings"
+	"github.com/jmoiron/sqlx"
 
 	"github.com/paypay3/kakeibo-rest-api-ddd/user-rest-service/apierrors"
 	"github.com/paypay3/kakeibo-rest-api-ddd/user-rest-service/infrastructure/persistence/rdb"
@@ -177,27 +177,27 @@ func (r *groupQueryServiceImpl) fetchUnApprovedGroupList(userID string) ([]outpu
 }
 
 func (r *groupQueryServiceImpl) fetchApprovedUsersList(groupIDList []interface{}) ([]output.ApprovedUser, error) {
-	sliceQuery := make([]string, len(groupIDList))
-	for i := 0; i < len(groupIDList); i++ {
-		sliceQuery[i] = `
-            SELECT
-                group_users.group_id group_id,
-                group_users.user_id user_id,
-                users.name user_name,
-                group_users.color_code color_code
-            FROM
-                group_users
-            LEFT JOIN
-                users
-            ON
-                group_users.user_id = users.user_id
-            WHERE
-                group_users.group_id = ?`
+	query := `
+        SELECT
+            group_users.group_id group_id,
+            group_users.user_id user_id,
+            users.name user_name,
+            group_users.color_code color_code
+        FROM
+            group_users
+        LEFT JOIN
+            users
+        ON
+            group_users.user_id = users.user_id
+        WHERE
+            group_users.group_id IN (?)`
+
+	query, queryArgs, err := sqlx.In(query, groupIDList)
+	if err != nil {
+		return nil, apierrors.NewInternalServerError(apierrors.NewErrorString("Internal Server Error1"))
 	}
 
-	query := strings.Join(sliceQuery, " UNION ALL ")
-
-	rows, err := r.MySQLHandler.Conn.Queryx(query, groupIDList...)
+	rows, err := r.MySQLHandler.Conn.Queryx(query, queryArgs...)
 	if err != nil {
 		return nil, apierrors.NewInternalServerError(apierrors.NewErrorString("Internal Server Error"))
 	}
@@ -221,26 +221,26 @@ func (r *groupQueryServiceImpl) fetchApprovedUsersList(groupIDList []interface{}
 }
 
 func (r *groupQueryServiceImpl) fetchUnapprovedUsersList(groupIDList []interface{}) ([]output.UnapprovedUser, error) {
-	sliceQuery := make([]string, len(groupIDList))
-	for i := 0; i < len(groupIDList); i++ {
-		sliceQuery[i] = `
-            SELECT
-                group_unapproved_users.group_id group_id,
-                group_unapproved_users.user_id user_id,
-                users.name user_name
-            FROM
-                group_unapproved_users
-            LEFT JOIN
-                users
-            ON
-                group_unapproved_users.user_id = users.user_id
-            WHERE
-                group_unapproved_users.group_id = ?`
+	query := `
+        SELECT
+            group_unapproved_users.group_id group_id,
+            group_unapproved_users.user_id user_id,
+            users.name user_name
+        FROM
+            group_unapproved_users
+        LEFT JOIN
+            users
+        ON
+            group_unapproved_users.user_id = users.user_id
+        WHERE
+            group_unapproved_users.group_id IN (?)`
+
+	query, queryArgs, err := sqlx.In(query, groupIDList)
+	if err != nil {
+		return nil, apierrors.NewInternalServerError(apierrors.NewErrorString("Internal Server Error1"))
 	}
 
-	query := strings.Join(sliceQuery, " UNION ALL ")
-
-	rows, err := r.MySQLHandler.Conn.Queryx(query, groupIDList...)
+	rows, err := r.MySQLHandler.Conn.Queryx(query, queryArgs...)
 	if err != nil {
 		return nil, apierrors.NewInternalServerError(apierrors.NewErrorString("Internal Server Error"))
 	}

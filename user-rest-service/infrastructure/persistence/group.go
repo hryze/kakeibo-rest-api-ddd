@@ -17,7 +17,7 @@ func NewGroupRepository(mysqlHandler *rdb.MySQLHandler) *groupRepository {
 	return &groupRepository{mysqlHandler}
 }
 
-func (r *groupRepository) StoreGroupAndApprovedUser(groupName groupdomain.GroupName, userID userdomain.UserID) (*groupdomain.Group, error) {
+func (r *groupRepository) StoreGroupAndApprovedUser(group *groupdomain.Group, userID userdomain.UserID) (*groupdomain.Group, error) {
 	storeGroupQuery := `
         INSERT INTO group_names
             (group_name)
@@ -36,7 +36,7 @@ func (r *groupRepository) StoreGroupAndApprovedUser(groupName groupdomain.GroupN
 	}
 
 	transactions := func(tx *sql.Tx) (int, error) {
-		result, err := tx.Exec(storeGroupQuery, groupName.Value())
+		result, err := tx.Exec(storeGroupQuery, group.GroupName().Value())
 		if err != nil {
 			return 0, err
 		}
@@ -71,12 +71,12 @@ func (r *groupRepository) StoreGroupAndApprovedUser(groupName groupdomain.GroupN
 		return nil, apierrors.NewInternalServerError(apierrors.NewErrorString("Internal Server Error"))
 	}
 
-	group := groupdomain.NewGroup(groupIDVo, groupName)
+	group = groupdomain.NewGroup(groupIDVo, group.GroupName())
 
 	return group, nil
 }
 
-func (r *groupRepository) DeleteGroupAndApprovedUser(groupID groupdomain.GroupID) error {
+func (r *groupRepository) DeleteGroupAndApprovedUser(group *groupdomain.Group) error {
 	query := `
 	   DELETE
 	       group_users, group_names
@@ -88,6 +88,11 @@ func (r *groupRepository) DeleteGroupAndApprovedUser(groupID groupdomain.GroupID
 	       group_users.group_id = group_names.id
 	   WHERE
 	       group_users.group_id = ?`
+
+	groupID, err := group.ID()
+	if err != nil {
+		return apierrors.NewInternalServerError(apierrors.NewErrorString("Internal Server Error"))
+	}
 
 	if _, err := r.MySQLHandler.Conn.Exec(query, groupID.Value()); err != nil {
 		return apierrors.NewInternalServerError(apierrors.NewErrorString("Internal Server Error"))

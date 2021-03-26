@@ -96,12 +96,12 @@ func (r *groupRepository) DeleteGroupAndApprovedUser(group *groupdomain.Group) e
 		return apierrors.NewInternalServerError(apierrors.NewErrorString("Internal Server Error"))
 	}
 
-	transactions := func(tx *sql.Tx) error {
-		groupID, err := group.ID()
-		if err != nil {
-			return apierrors.NewInternalServerError(apierrors.NewErrorString("Internal Server Error"))
-		}
+	groupID, err := group.ID()
+	if err != nil {
+		return apierrors.NewInternalServerError(apierrors.NewErrorString("Internal Server Error"))
+	}
 
+	transactions := func(tx *sql.Tx) error {
 		if _, err := tx.Exec(deleteApprovedUserQuery, groupID.Value()); err != nil {
 			return err
 		}

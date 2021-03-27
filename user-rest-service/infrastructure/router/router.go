@@ -64,6 +64,7 @@ func Run() error {
 	router.HandleFunc("/user", userHandler.FetchLoginUser).Methods(http.MethodGet)
 	router.HandleFunc("/groups", groupHandler.FetchGroupList).Methods(http.MethodGet)
 	router.HandleFunc("/groups", groupHandler.StoreGroup).Methods(http.MethodPost)
+	router.HandleFunc("/groups/{group_id:[0-9]+}", groupHandler.UpdateGroupName).Methods(http.MethodPut)
 
 	// Apply cors middleware to top-level router.
 	srv := &http.Server{

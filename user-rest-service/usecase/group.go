@@ -16,6 +16,7 @@ import (
 type GroupUsecase interface {
 	FetchGroupList(in *input.AuthenticatedUser) (*output.GroupList, error)
 	StoreGroup(authenticatedUser *input.AuthenticatedUser, group *input.Group) (*output.Group, error)
+	UpdateGroupName(group *input.Group) (*output.Group, error)
 }
 
 type groupUsecase struct {
@@ -81,6 +82,41 @@ func (u *groupUsecase) StoreGroup(authenticatedUser *input.AuthenticatedUser, gr
 			return nil, err
 		}
 
+		return nil, err
+	}
+
+	return &output.Group{
+		GroupID:   groupID.Value(),
+		GroupName: group.GroupName().Value(),
+	}, nil
+}
+
+func (u *groupUsecase) UpdateGroupName(groupInput *input.Group) (*output.Group, error) {
+	groupID, err := groupdomain.NewGroupID(groupInput.GroupID)
+	if err != nil {
+		return nil, apierrors.NewBadRequestError(apierrors.NewErrorString("グループIDは1以上の整数で指定してください"))
+	}
+
+	groupName, err := groupdomain.NewGroupName(groupInput.GroupName)
+	if err != nil {
+		if xerrors.Is(err, groupdomain.ErrCharacterCountGroupName) {
+			return nil, apierrors.NewBadRequestError(apierrors.NewErrorString("グループ名は1文字以上、20文字以内で入力してください"))
+		}
+
+		if xerrors.Is(err, groupdomain.ErrPrefixSpaceGroupName) {
+			return nil, apierrors.NewBadRequestError(apierrors.NewErrorString("文字列先頭に空白がないか確認してください"))
+		}
+
+		if xerrors.Is(err, groupdomain.ErrSuffixSpaceGroupName) {
+			return nil, apierrors.NewBadRequestError(apierrors.NewErrorString("文字列末尾に空白がないか確認してください"))
+		}
+
+		return nil, apierrors.NewInternalServerError(apierrors.NewErrorString("Internal Server Error"))
+	}
+
+	group := groupdomain.NewGroup(groupID, groupName)
+
+	if err := u.groupRepository.UpdateGroupName(group); err != nil {
 		return nil, err
 	}
 

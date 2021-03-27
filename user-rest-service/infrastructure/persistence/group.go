@@ -127,3 +127,24 @@ func (r *groupRepository) DeleteGroupAndApprovedUser(group *groupdomain.Group) e
 
 	return nil
 }
+
+func (r *groupRepository) UpdateGroupName(group *groupdomain.Group) error {
+	query := `
+        UPDATE
+            group_names
+        SET 
+            group_name = ?
+        WHERE
+            id = ?`
+
+	groupID, err := group.ID()
+	if err != nil {
+		return apierrors.NewInternalServerError(apierrors.NewErrorString("Internal Server Error"))
+	}
+
+	if _, err = r.MySQLHandler.Conn.Exec(query, group.GroupName().Value(), groupID.Value()); err != nil {
+		return apierrors.NewInternalServerError(apierrors.NewErrorString("Internal Server Error"))
+	}
+
+	return nil
+}

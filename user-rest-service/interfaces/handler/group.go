@@ -82,5 +82,5 @@ func (h *groupHandler) UpdateGroupName(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	presenter.JSON(w, http.StatusCreated, out)
+	presenter.JSON(w, http.StatusOK, out)
 }

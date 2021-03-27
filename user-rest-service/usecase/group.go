@@ -97,6 +97,11 @@ func (u *groupUsecase) UpdateGroupName(groupInput *input.Group) (*output.Group, 
 		return nil, apierrors.NewBadRequestError(apierrors.NewErrorString("グループIDは1以上の整数で指定してください"))
 	}
 
+	group, err := u.groupRepository.FindGroupByID(&groupID)
+	if err != nil {
+		return nil, err
+	}
+
 	groupName, err := groupdomain.NewGroupName(groupInput.GroupName)
 	if err != nil {
 		if xerrors.Is(err, groupdomain.ErrCharacterCountGroupName) {
@@ -114,7 +119,7 @@ func (u *groupUsecase) UpdateGroupName(groupInput *input.Group) (*output.Group, 
 		return nil, apierrors.NewInternalServerError(apierrors.NewErrorString("Internal Server Error"))
 	}
 
-	group := groupdomain.NewGroup(groupID, groupName)
+	group.UpdateGroupName(groupName)
 
 	if err := u.groupRepository.UpdateGroupName(group); err != nil {
 		return nil, err
@@ -122,6 +127,6 @@ func (u *groupUsecase) UpdateGroupName(groupInput *input.Group) (*output.Group, 
 
 	return &output.Group{
 		GroupID:   groupID.Value(),
-		GroupName: group.GroupName().Value(),
+		GroupName: groupName.Value(),
 	}, nil
 }

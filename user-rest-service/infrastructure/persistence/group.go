@@ -3,9 +3,12 @@ package persistence
 import (
 	"database/sql"
 
+	"golang.org/x/xerrors"
+
 	"github.com/paypay3/kakeibo-rest-api-ddd/user-rest-service/apierrors"
 	"github.com/paypay3/kakeibo-rest-api-ddd/user-rest-service/domain/groupdomain"
 	"github.com/paypay3/kakeibo-rest-api-ddd/user-rest-service/domain/userdomain"
+	"github.com/paypay3/kakeibo-rest-api-ddd/user-rest-service/infrastructure/persistence/datasource"
 	"github.com/paypay3/kakeibo-rest-api-ddd/user-rest-service/infrastructure/persistence/rdb"
 )
 
@@ -147,4 +150,38 @@ func (r *groupRepository) UpdateGroupName(group *groupdomain.Group) error {
 	}
 
 	return nil
+}
+
+func (r *groupRepository) FindGroupByID(groupID *groupdomain.GroupID) (*groupdomain.Group, error) {
+	query := `
+        SELECT
+            id,
+            group_name
+        FROM
+            group_names
+        WHERE
+            id = ?`
+
+	var groupDto datasource.Group
+	if err := r.MySQLHandler.Conn.QueryRowx(query, groupID.Value()).StructScan(&groupDto); err != nil {
+		if xerrors.Is(err, sql.ErrNoRows) {
+			return nil, apierrors.NewNotFoundError(apierrors.NewErrorString("指定されたグループは存在しません"))
+		}
+
+		return nil, apierrors.NewInternalServerError(apierrors.NewErrorString("Internal Server Error"))
+	}
+
+	groupIDVo, err := groupdomain.NewGroupID(groupDto.GroupID)
+	if err != nil {
+		return nil, apierrors.NewInternalServerError(apierrors.NewErrorString("Internal Server Error"))
+	}
+
+	groupNameVo, err := groupdomain.NewGroupName(groupDto.GroupName)
+	if err != nil {
+		return nil, apierrors.NewInternalServerError(apierrors.NewErrorString("Internal Server Error"))
+	}
+
+	group := groupdomain.NewGroup(groupIDVo, groupNameVo)
+
+	return group, nil
 }

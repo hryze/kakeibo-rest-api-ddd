@@ -84,3 +84,28 @@ func (h *groupHandler) UpdateGroupName(w http.ResponseWriter, r *http.Request) {
 
 	presenter.JSON(w, http.StatusOK, out)
 }
+
+func (h *groupHandler) StoreGroupUnapprovedUser(w http.ResponseWriter, r *http.Request) {
+	var unapprovedUser input.UnapprovedUser
+	if err := json.NewDecoder(r.Body).Decode(&unapprovedUser); err != nil {
+		presenter.ErrorJSON(w, apierrors.NewBadRequestError(apierrors.NewErrorString("正しいデータを入力してください")))
+		return
+	}
+
+	var group input.Group
+	groupID, err := strconv.Atoi(mux.Vars(r)["group_id"])
+	if err != nil {
+		presenter.ErrorJSON(w, apierrors.NewBadRequestError(apierrors.NewErrorString("グループIDを正しく指定してください")))
+		return
+	}
+
+	group.GroupID = groupID
+
+	out, err := h.groupUsecase.StoreGroupUnapprovedUser(&unapprovedUser, &group)
+	if err != nil {
+		presenter.ErrorJSON(w, err)
+		return
+	}
+
+	presenter.JSON(w, http.StatusCreated, out)
+}

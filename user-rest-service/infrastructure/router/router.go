@@ -50,7 +50,7 @@ func Run() error {
 
 	groupRepository := persistence.NewGroupRepository(mySQLHandler)
 	groupQueryService := query.NewGroupQueryServiceImpl(mySQLHandler)
-	groupUsecase := usecase.NewGroupUsecase(groupRepository, groupQueryService, accountApi)
+	groupUsecase := usecase.NewGroupUsecase(groupRepository, groupQueryService, accountApi, userRepository)
 	groupHandler := handler.NewGroupHandler(groupUsecase)
 
 	router := mux.NewRouter()
@@ -65,6 +65,7 @@ func Run() error {
 	router.HandleFunc("/groups", groupHandler.FetchGroupList).Methods(http.MethodGet)
 	router.HandleFunc("/groups", groupHandler.StoreGroup).Methods(http.MethodPost)
 	router.HandleFunc("/groups/{group_id:[0-9]+}", groupHandler.UpdateGroupName).Methods(http.MethodPut)
+	router.HandleFunc("/groups/{group_id:[0-9]+}/users", groupHandler.StoreGroupUnapprovedUser).Methods(http.MethodPost)
 
 	// Apply cors middleware to top-level router.
 	srv := &http.Server{

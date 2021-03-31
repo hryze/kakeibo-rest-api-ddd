@@ -232,7 +232,7 @@ func (r *groupRepository) FindApprovedUser(groupID groupdomain.GroupID, userID u
 		return nil, apierrors.NewInternalServerError(apierrors.NewErrorString("Internal Server Error"))
 	}
 
-	colorCodeVo, err := groupdomain.NewColorCode("#23411F")
+	colorCodeVo, err := groupdomain.NewColorCode(approvedUserDto.ColorCode)
 	if err != nil {
 		return nil, apierrors.NewInternalServerError(apierrors.NewErrorString("Internal Server Error"))
 	}

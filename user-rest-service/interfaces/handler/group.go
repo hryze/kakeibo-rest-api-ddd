@@ -109,3 +109,26 @@ func (h *groupHandler) StoreGroupUnapprovedUser(w http.ResponseWriter, r *http.R
 
 	presenter.JSON(w, http.StatusCreated, out)
 }
+
+func (h *groupHandler) DeleteGroupApprovedUser(w http.ResponseWriter, r *http.Request) {
+	authenticatedUser, err := getUserIDOfContext(r)
+	if err != nil {
+		presenter.ErrorJSON(w, err)
+		return
+	}
+
+	groupID, err := strconv.Atoi(mux.Vars(r)["group_id"])
+	if err != nil {
+		presenter.ErrorJSON(w, apierrors.NewBadRequestError(apierrors.NewErrorString("グループIDを正しく指定してください")))
+		return
+	}
+
+	group := input.Group{GroupID: groupID}
+
+	if err := h.groupUsecase.DeleteGroupApprovedUser(authenticatedUser, &group); err != nil {
+		presenter.ErrorJSON(w, err)
+		return
+	}
+
+	presenter.JSON(w, http.StatusOK, presenter.NewSuccessString("グループを退会しました"))
+}

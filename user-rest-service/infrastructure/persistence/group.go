@@ -176,7 +176,36 @@ func (r *groupRepository) DeleteApprovedUser(approvedUser *groupdomain.ApprovedU
         AND
             user_id = ?`
 
-	if _, err := r.MySQLHandler.Conn.Exec(query, approvedUser.GroupID().Value(), approvedUser.UserID().Value()); err != nil {
+	tx, err := r.MySQLHandler.Conn.Begin()
+	if err != nil {
+		return apierrors.NewInternalServerError(apierrors.NewErrorString("Internal Server Error"))
+	}
+
+	transactions := func(tx *sql.Tx) error {
+		result, err := r.MySQLHandler.Conn.Exec(query, approvedUser.GroupID().Value(), approvedUser.UserID().Value())
+		if err != nil {
+			return err
+		}
+
+		rowsAffected, err := result.RowsAffected()
+		if err != nil {
+			return err
+		} else if rowsAffected != 1 {
+			return xerrors.Errorf("affected rows must be a single row: %d", rowsAffected)
+		}
+
+		return nil
+	}
+
+	if err := transactions(tx); err != nil {
+		if err := tx.Rollback(); err != nil {
+			return apierrors.NewInternalServerError(apierrors.NewErrorString("Internal Server Error"))
+		}
+
+		return apierrors.NewInternalServerError(apierrors.NewErrorString("Internal Server Error"))
+	}
+
+	if err := tx.Commit(); err != nil {
 		return apierrors.NewInternalServerError(apierrors.NewErrorString("Internal Server Error"))
 	}
 

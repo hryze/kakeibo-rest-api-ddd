@@ -253,6 +253,61 @@ func (r *groupRepository) DeleteApprovedUser(approvedUser *groupdomain.ApprovedU
 	return nil
 }
 
+func (r *groupRepository) StoreApprovedUser(approvedUser *groupdomain.ApprovedUser) error {
+	insertApprovedUserQuery := `
+        INSERT INTO group_users
+            (group_id, user_id, color_code)
+        VALUES
+            (?, ?, ?)`
+
+	deleteUnapprovedUserQuery := `
+        DELETE
+        FROM
+            group_unapproved_users
+        WHERE
+            group_id = ?
+        AND
+            user_id = ?`
+
+	tx, err := r.MySQLHandler.Conn.Begin()
+	if err != nil {
+		return apierrors.NewInternalServerError(apierrors.NewErrorString("Internal Server Error"))
+	}
+
+	transactions := func(tx *sql.Tx) error {
+		if _, err := tx.Exec(insertApprovedUserQuery, approvedUser.GroupID().Value(), approvedUser.UserID().Value(), approvedUser.ColorCode().Value()); err != nil {
+			return err
+		}
+
+		result, err := tx.Exec(deleteUnapprovedUserQuery, approvedUser.GroupID().Value(), approvedUser.UserID().Value())
+		if err != nil {
+			return err
+		}
+
+		if rowsAffected, err := result.RowsAffected(); err != nil {
+			return err
+		} else if rowsAffected != 1 {
+			return xerrors.Errorf("affected rows must be a single row: %d", rowsAffected)
+		}
+
+		return nil
+	}
+
+	if err := transactions(tx); err != nil {
+		if err := tx.Rollback(); err != nil {
+			return apierrors.NewInternalServerError(apierrors.NewErrorString("Internal Server Error"))
+		}
+
+		return apierrors.NewInternalServerError(apierrors.NewErrorString("Internal Server Error"))
+	}
+
+	if err := tx.Commit(); err != nil {
+		return apierrors.NewInternalServerError(apierrors.NewErrorString("Internal Server Error"))
+	}
+
+	return nil
+}
+
 func (r *groupRepository) FindGroupByID(groupID *groupdomain.GroupID) (*groupdomain.Group, error) {
 	query := `
         SELECT

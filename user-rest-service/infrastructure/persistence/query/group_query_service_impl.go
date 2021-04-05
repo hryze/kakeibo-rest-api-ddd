@@ -112,6 +112,68 @@ func (r *groupQueryServiceImpl) FetchUnapprovedUser(groupID int, userID string) 
 	return &unapprovedUser, nil
 }
 
+func (r *groupQueryServiceImpl) FetchApprovedUser(groupID int, userID string) (*output.ApprovedUser, error) {
+	query := `
+        SELECT
+            group_users.group_id group_id,
+            group_users.user_id user_id,
+            users.name user_name,
+            group_users.color_code color_code
+        FROM
+            group_users
+        INNER JOIN
+            users
+        ON
+            group_users.user_id = users.user_id
+        WHERE
+            group_users.group_id = ?
+        AND
+            group_users.user_id = ?`
+
+	var approvedUser output.ApprovedUser
+	if err := r.MySQLHandler.Conn.QueryRowx(query, groupID, userID).StructScan(&approvedUser); err != nil {
+		if xerrors.Is(err, sql.ErrNoRows) {
+			return nil, apierrors.NewNotFoundError(apierrors.NewErrorString("ユーザーが存在しません"))
+		}
+
+		return nil, apierrors.NewInternalServerError(apierrors.NewErrorString("Internal Server Error"))
+	}
+
+	return &approvedUser, nil
+}
+
+func (r *groupQueryServiceImpl) FetchApprovedUserIDList(groupID int) ([]string, error) {
+	query := `
+        SELECT
+            user_id
+        FROM
+            group_users
+        WHERE
+            group_id = ?`
+
+	rows, err := r.MySQLHandler.Conn.Queryx(query, groupID)
+	if err != nil {
+		return nil, apierrors.NewInternalServerError(apierrors.NewErrorString("Internal Server Error"))
+	}
+	defer rows.Close()
+
+	approvedUserIDList := make([]string, 0)
+	for rows.Next() {
+		var userID string
+		if err := rows.Scan(&userID); err != nil {
+			return nil, apierrors.NewInternalServerError(apierrors.NewErrorString("Internal Server Error"))
+		}
+
+		approvedUserIDList = append(approvedUserIDList, userID)
+	}
+
+	if err := rows.Err(); err != nil {
+		return nil, apierrors.NewInternalServerError(apierrors.NewErrorString("Internal Server Error"))
+	}
+
+	return approvedUserIDList, nil
+}
+
 func generateGroupIDList(approvedGroupList []output.ApprovedGroup, unapprovedGroupList []output.UnapprovedGroup) []interface{} {
 	groupIDList := make([]interface{}, 0, len(approvedGroupList)+len(unapprovedGroupList))
 

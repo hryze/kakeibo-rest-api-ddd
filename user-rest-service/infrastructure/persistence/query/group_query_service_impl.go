@@ -142,38 +142,6 @@ func (r *groupQueryServiceImpl) FetchApprovedUser(groupID int, userID string) (*
 	return &approvedUser, nil
 }
 
-func (r *groupQueryServiceImpl) FetchApprovedUserIDList(groupID int) ([]string, error) {
-	query := `
-        SELECT
-            user_id
-        FROM
-            group_users
-        WHERE
-            group_id = ?`
-
-	rows, err := r.MySQLHandler.Conn.Queryx(query, groupID)
-	if err != nil {
-		return nil, apierrors.NewInternalServerError(apierrors.NewErrorString("Internal Server Error"))
-	}
-	defer rows.Close()
-
-	approvedUserIDList := make([]string, 0)
-	for rows.Next() {
-		var userID string
-		if err := rows.Scan(&userID); err != nil {
-			return nil, apierrors.NewInternalServerError(apierrors.NewErrorString("Internal Server Error"))
-		}
-
-		approvedUserIDList = append(approvedUserIDList, userID)
-	}
-
-	if err := rows.Err(); err != nil {
-		return nil, apierrors.NewInternalServerError(apierrors.NewErrorString("Internal Server Error"))
-	}
-
-	return approvedUserIDList, nil
-}
-
 func generateGroupIDList(approvedGroupList []output.ApprovedGroup, unapprovedGroupList []output.UnapprovedGroup) []interface{} {
 	groupIDList := make([]interface{}, 0, len(approvedGroupList)+len(unapprovedGroupList))
 

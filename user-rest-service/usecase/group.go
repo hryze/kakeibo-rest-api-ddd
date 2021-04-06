@@ -220,7 +220,7 @@ func (u *groupUsecase) StoreGroupApprovedUser(authenticatedUser *input.Authentic
 		return nil, err
 	}
 
-	approvedUserIDList, err := u.groupQueryService.FetchApprovedUserIDList(groupID.Value())
+	approvedUserIDList, err := u.groupRepository.FetchApprovedUserIDList(groupID)
 	if err != nil {
 		return nil, err
 	}

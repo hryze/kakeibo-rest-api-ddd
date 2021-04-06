@@ -4,6 +4,8 @@ import (
 	"regexp"
 
 	"golang.org/x/xerrors"
+
+	"github.com/paypay3/kakeibo-rest-api-ddd/user-rest-service/domain/userdomain"
 )
 
 type ColorCode string
@@ -76,7 +78,7 @@ func NewColorCode(colorCode string) (ColorCode, error) {
 	return ColorCode(colorCode), nil
 }
 
-func NewColorCodeToUser(approvedUserIDList []string) (ColorCode, error) {
+func NewColorCodeToUser(approvedUserIDList []userdomain.UserID) (ColorCode, error) {
 	if len(approvedUserIDList) == 0 {
 		return "", xerrors.Errorf("approvedUserIDList must be more than 1 element: %d", len(approvedUserIDList))
 	}

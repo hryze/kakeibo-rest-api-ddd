@@ -419,3 +419,40 @@ func (r *groupRepository) FindUnapprovedUser(groupID groupdomain.GroupID, userID
 
 	return unapprovedUser, nil
 }
+
+func (r *groupRepository) FetchApprovedUserIDList(groupID groupdomain.GroupID) ([]userdomain.UserID, error) {
+	query := `
+        SELECT
+            user_id
+        FROM
+            group_users
+        WHERE
+            group_id = ?`
+
+	rows, err := r.MySQLHandler.Conn.Queryx(query, groupID.Value())
+	if err != nil {
+		return nil, apierrors.NewInternalServerError(apierrors.NewErrorString("Internal Server Error"))
+	}
+	defer rows.Close()
+
+	approvedUserIDList := make([]userdomain.UserID, 0)
+	for rows.Next() {
+		var userID string
+		if err := rows.Scan(&userID); err != nil {
+			return nil, apierrors.NewInternalServerError(apierrors.NewErrorString("Internal Server Error"))
+		}
+
+		userIDVo, err := userdomain.NewUserID(userID)
+		if err != nil {
+			return nil, apierrors.NewInternalServerError(apierrors.NewErrorString("Internal Server Error"))
+		}
+
+		approvedUserIDList = append(approvedUserIDList, userIDVo)
+	}
+
+	if err := rows.Err(); err != nil {
+		return nil, apierrors.NewInternalServerError(apierrors.NewErrorString("Internal Server Error"))
+	}
+
+	return approvedUserIDList, nil
+}

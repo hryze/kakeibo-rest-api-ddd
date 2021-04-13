@@ -8,6 +8,7 @@ import (
 	"github.com/gorilla/mux"
 
 	"github.com/paypay3/kakeibo-rest-api-ddd/user-rest-service/apierrors"
+	"github.com/paypay3/kakeibo-rest-api-ddd/user-rest-service/apperrors"
 	"github.com/paypay3/kakeibo-rest-api-ddd/user-rest-service/interfaces/presenter"
 	"github.com/paypay3/kakeibo-rest-api-ddd/user-rest-service/usecase"
 	"github.com/paypay3/kakeibo-rest-api-ddd/user-rest-service/usecase/input"
@@ -136,13 +137,17 @@ func (h *groupHandler) DeleteGroupApprovedUser(w http.ResponseWriter, r *http.Re
 func (h *groupHandler) StoreGroupApprovedUser(w http.ResponseWriter, r *http.Request) {
 	authenticatedUser, err := getUserIDOfContext(r)
 	if err != nil {
-		presenter.ErrorJSON(w, err)
+		err = apperrors.Wrap(err)
+		ErrorLog(err)
+		presenter.ErrorJSONV2(w, err)
 		return
 	}
 
 	groupID, err := strconv.Atoi(mux.Vars(r)["group_id"])
 	if err != nil {
-		presenter.ErrorJSON(w, apierrors.NewBadRequestError(apierrors.NewErrorString("グループIDを正しく指定してください")))
+		err = apperrors.InvalidParameter.SetInfoMessage(apperrors.NewErrorString("グループIDを正しく指定してください")).Wrap(err)
+		ErrorLog(err)
+		presenter.ErrorJSONV2(w, err)
 		return
 	}
 
@@ -150,7 +155,9 @@ func (h *groupHandler) StoreGroupApprovedUser(w http.ResponseWriter, r *http.Req
 
 	out, err := h.groupUsecase.StoreGroupApprovedUser(authenticatedUser, &group)
 	if err != nil {
-		presenter.ErrorJSON(w, err)
+		err = apperrors.Wrap(err, "StoreGroupApprovedUser handler failed ")
+		ErrorLog(err)
+		presenter.ErrorJSONV2(w, err)
 		return
 	}
 

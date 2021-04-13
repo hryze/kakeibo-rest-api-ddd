@@ -6,6 +6,7 @@ import (
 	"net/http"
 
 	"github.com/paypay3/kakeibo-rest-api-ddd/user-rest-service/apierrors"
+	"github.com/paypay3/kakeibo-rest-api-ddd/user-rest-service/apperrors"
 )
 
 type httpError struct {
@@ -59,6 +60,21 @@ func ErrorJSON(w http.ResponseWriter, err error) {
 	w.Header().Set("Content-Type", "application/json; charset=UTF-8")
 	w.WriteHeader(httpError.StatusCode)
 	if err := json.NewEncoder(w).Encode(httpError); err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+	}
+}
+
+func ErrorJSONV2(w http.ResponseWriter, err error) {
+	appErr := apperrors.AsAppError(err)
+
+	httpErr := &httpError{
+		StatusCode:   appErr.Status(),
+		ErrorMessage: appErr.InfoMessage(),
+	}
+
+	w.Header().Set("Content-Type", "application/json; charset=UTF-8")
+	w.WriteHeader(httpErr.StatusCode)
+	if err := json.NewEncoder(w).Encode(httpErr); err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
 	}
 }

@@ -27,6 +27,7 @@ type ENV struct {
 	MySQL
 	Redis
 	AccountApi
+	Log
 }
 
 type Server struct {
@@ -65,4 +66,8 @@ type Redis struct {
 type AccountApi struct {
 	Host string `envconfig:"ACCOUNT_HOST" required:"true"`
 	Port int    `envconfig:"ACCOUNT_PORT" required:"true"`
+}
+
+type Log struct {
+	Debug bool `envconfig:"DEBUG" default:"true"`
 }

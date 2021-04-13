@@ -4,7 +4,7 @@ import (
 	"strings"
 	"unicode/utf8"
 
-	"golang.org/x/xerrors"
+	"github.com/paypay3/kakeibo-rest-api-ddd/user-rest-service/apperrors"
 )
 
 type UserID string
@@ -14,22 +14,17 @@ const (
 	maxUserIDLength = 10
 )
 
-var ErrInvalidUserID = xerrors.New("invalid user id")
-
 func NewUserID(userID string) (UserID, error) {
 	if n := utf8.RuneCountInString(userID); n < minUserIDLength || n > maxUserIDLength {
-		return "", xerrors.Errorf(
-			"user id must be %d or more and %d or less: %s: %w",
-			minUserIDLength, maxUserIDLength, userID, ErrInvalidUserID,
+		return "", apperrors.Errorf(
+			"user id must be %d or more and %d or less: %s",
+			minUserIDLength, maxUserIDLength, userID,
 		)
 	}
 
 	if strings.Contains(userID, " ") ||
 		strings.Contains(userID, "　") {
-		return "", xerrors.Errorf(
-			"user id cannot contain spaces: %s: %w",
-			userID, ErrInvalidUserID,
-		)
+		return "", apperrors.Errorf("user id cannot contain spaces: %s", userID)
 	}
 
 	return UserID(userID), nil

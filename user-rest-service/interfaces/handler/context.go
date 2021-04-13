@@ -5,7 +5,7 @@ import (
 
 	"github.com/gorilla/context"
 
-	"github.com/paypay3/kakeibo-rest-api-ddd/user-rest-service/apierrors"
+	"github.com/paypay3/kakeibo-rest-api-ddd/user-rest-service/apperrors"
 	"github.com/paypay3/kakeibo-rest-api-ddd/user-rest-service/config"
 	"github.com/paypay3/kakeibo-rest-api-ddd/user-rest-service/usecase/input"
 )
@@ -13,12 +13,12 @@ import (
 func getUserIDOfContext(r *http.Request) (*input.AuthenticatedUser, error) {
 	ctx, ok := context.GetOk(r, config.Env.RequestCtx.UserID)
 	if !ok {
-		return nil, apierrors.NewInternalServerError(apierrors.NewErrorString("Internal Server Error"))
+		return nil, apperrors.InternalServerError.SetInfoMessage(apperrors.NewErrorString("Internal Server Error"))
 	}
 
 	ctxUserID, ok := ctx.(string)
 	if !ok {
-		return nil, apierrors.NewInternalServerError(apierrors.NewErrorString("Internal Server Error"))
+		return nil, apperrors.InternalServerError.SetInfoMessage(apperrors.NewErrorString("Internal Server Error"))
 	}
 
 	return &input.AuthenticatedUser{

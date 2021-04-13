@@ -5,10 +5,12 @@ import (
 	"net/http"
 	"strconv"
 
+	"github.com/gorilla/context"
 	"github.com/gorilla/mux"
 
 	"github.com/paypay3/kakeibo-rest-api-ddd/user-rest-service/apierrors"
 	"github.com/paypay3/kakeibo-rest-api-ddd/user-rest-service/apperrors"
+	"github.com/paypay3/kakeibo-rest-api-ddd/user-rest-service/config"
 	"github.com/paypay3/kakeibo-rest-api-ddd/user-rest-service/interfaces/presenter"
 	"github.com/paypay3/kakeibo-rest-api-ddd/user-rest-service/usecase"
 	"github.com/paypay3/kakeibo-rest-api-ddd/user-rest-service/usecase/input"
@@ -138,7 +140,7 @@ func (h *groupHandler) StoreGroupApprovedUser(w http.ResponseWriter, r *http.Req
 	authenticatedUser, err := getUserIDOfContext(r)
 	if err != nil {
 		err = apperrors.Wrap(err)
-		ErrorLog(err)
+		context.Set(r, config.Env.ContextKey.AppError, err)
 		presenter.ErrorJSONV2(w, err)
 		return
 	}
@@ -146,7 +148,7 @@ func (h *groupHandler) StoreGroupApprovedUser(w http.ResponseWriter, r *http.Req
 	groupID, err := strconv.Atoi(mux.Vars(r)["group_id"])
 	if err != nil {
 		err = apperrors.InvalidParameter.SetInfoMessage(apperrors.NewErrorString("グループIDを正しく指定してください")).Wrap(err)
-		ErrorLog(err)
+		context.Set(r, config.Env.ContextKey.AppError, err)
 		presenter.ErrorJSONV2(w, err)
 		return
 	}
@@ -156,7 +158,7 @@ func (h *groupHandler) StoreGroupApprovedUser(w http.ResponseWriter, r *http.Req
 	out, err := h.groupUsecase.StoreGroupApprovedUser(authenticatedUser, &group)
 	if err != nil {
 		err = apperrors.Wrap(err, "StoreGroupApprovedUser handler failed ")
-		ErrorLog(err)
+		context.Set(r, config.Env.ContextKey.AppError, err)
 		presenter.ErrorJSONV2(w, err)
 		return
 	}

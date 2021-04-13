@@ -87,7 +87,7 @@ func (h *userHandler) Logout(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *userHandler) FetchLoginUser(w http.ResponseWriter, r *http.Request) {
-	ctx, ok := context.GetOk(r, config.Env.RequestCtx.UserID)
+	ctx, ok := context.GetOk(r, config.Env.ContextKey.UserID)
 	if !ok {
 		presenter.ErrorJSON(w, apierrors.NewInternalServerError(apierrors.NewErrorString("Internal Server Error")))
 		return

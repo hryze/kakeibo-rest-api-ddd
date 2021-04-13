@@ -6,6 +6,7 @@ import (
 	"golang.org/x/xerrors"
 
 	"github.com/paypay3/kakeibo-rest-api-ddd/user-rest-service/apierrors"
+	"github.com/paypay3/kakeibo-rest-api-ddd/user-rest-service/apperrors"
 	"github.com/paypay3/kakeibo-rest-api-ddd/user-rest-service/domain/groupdomain"
 	"github.com/paypay3/kakeibo-rest-api-ddd/user-rest-service/domain/userdomain"
 	"github.com/paypay3/kakeibo-rest-api-ddd/user-rest-service/infrastructure/persistence/datasource"
@@ -271,23 +272,23 @@ func (r *groupRepository) StoreApprovedUser(approvedUser *groupdomain.ApprovedUs
 
 	tx, err := r.MySQLHandler.Conn.Begin()
 	if err != nil {
-		return apierrors.NewInternalServerError(apierrors.NewErrorString("Internal Server Error"))
+		return apperrors.InternalServerError.SetInfoMessage(apperrors.NewErrorString("Internal Server Error")).Wrap(err)
 	}
 
 	transactions := func(tx *sql.Tx) error {
 		if _, err := tx.Exec(insertApprovedUserQuery, approvedUser.GroupID().Value(), approvedUser.UserID().Value(), approvedUser.ColorCode().Value()); err != nil {
-			return err
+			return apperrors.Wrap(err)
 		}
 
 		result, err := tx.Exec(deleteUnapprovedUserQuery, approvedUser.GroupID().Value(), approvedUser.UserID().Value())
 		if err != nil {
-			return err
+			return apperrors.Wrap(err)
 		}
 
 		if rowsAffected, err := result.RowsAffected(); err != nil {
-			return err
+			return apperrors.Wrap(err)
 		} else if rowsAffected != 1 {
-			return xerrors.Errorf("affected rows must be a single row: %d", rowsAffected)
+			return apperrors.Errorf("affected rows must be a single row: %d", rowsAffected)
 		}
 
 		return nil
@@ -295,14 +296,14 @@ func (r *groupRepository) StoreApprovedUser(approvedUser *groupdomain.ApprovedUs
 
 	if err := transactions(tx); err != nil {
 		if err := tx.Rollback(); err != nil {
-			return apierrors.NewInternalServerError(apierrors.NewErrorString("Internal Server Error"))
+			return apperrors.InternalServerError.SetInfoMessage(apperrors.NewErrorString("Internal Server Error")).Wrap(err)
 		}
 
-		return apierrors.NewInternalServerError(apierrors.NewErrorString("Internal Server Error"))
+		return apperrors.InternalServerError.SetInfoMessage(apperrors.NewErrorString("Internal Server Error")).Wrap(err)
 	}
 
 	if err := tx.Commit(); err != nil {
-		return apierrors.NewInternalServerError(apierrors.NewErrorString("Internal Server Error"))
+		return apperrors.InternalServerError.SetInfoMessage(apperrors.NewErrorString("Internal Server Error")).Wrap(err)
 	}
 
 	return nil
@@ -399,20 +400,20 @@ func (r *groupRepository) FindUnapprovedUser(groupID groupdomain.GroupID, userID
 	var unapprovedUserDto datasource.UnapprovedUser
 	if err := r.MySQLHandler.Conn.QueryRowx(query, groupID.Value(), userID.Value()).StructScan(&unapprovedUserDto); err != nil {
 		if xerrors.Is(err, sql.ErrNoRows) {
-			return nil, apierrors.NewNotFoundError(apierrors.NewErrorString("ユーザーが存在しません"))
+			return nil, apperrors.NotFound.SetInfoMessage(apperrors.NewErrorString("ユーザーが存在しません")).Wrap(err)
 		}
 
-		return nil, apierrors.NewInternalServerError(apierrors.NewErrorString("Internal Server Error"))
+		return nil, apperrors.InternalServerError.SetInfoMessage(apperrors.NewErrorString("Internal Server Error")).Wrap(err)
 	}
 
 	groupIDVo, err := groupdomain.NewGroupID(unapprovedUserDto.GroupID)
 	if err != nil {
-		return nil, apierrors.NewInternalServerError(apierrors.NewErrorString("Internal Server Error"))
+		return nil, apperrors.InternalServerError.SetInfoMessage(apperrors.NewErrorString("Internal Server Error")).Wrap(err)
 	}
 
 	userIDVo, err := userdomain.NewUserID(unapprovedUserDto.UserID)
 	if err != nil {
-		return nil, apierrors.NewInternalServerError(apierrors.NewErrorString("Internal Server Error"))
+		return nil, apperrors.InternalServerError.SetInfoMessage(apperrors.NewErrorString("Internal Server Error")).Wrap(err)
 	}
 
 	unapprovedUser := groupdomain.NewUnapprovedUser(groupIDVo, userIDVo)
@@ -431,7 +432,7 @@ func (r *groupRepository) FetchApprovedUserIDList(groupID groupdomain.GroupID) (
 
 	rows, err := r.MySQLHandler.Conn.Queryx(query, groupID.Value())
 	if err != nil {
-		return nil, apierrors.NewInternalServerError(apierrors.NewErrorString("Internal Server Error"))
+		return nil, apperrors.InternalServerError.SetInfoMessage(apperrors.NewErrorString("Internal Server Error")).Wrap(err)
 	}
 	defer rows.Close()
 
@@ -439,19 +440,19 @@ func (r *groupRepository) FetchApprovedUserIDList(groupID groupdomain.GroupID) (
 	for rows.Next() {
 		var userID string
 		if err := rows.Scan(&userID); err != nil {
-			return nil, apierrors.NewInternalServerError(apierrors.NewErrorString("Internal Server Error"))
+			return nil, apperrors.InternalServerError.SetInfoMessage(apperrors.NewErrorString("Internal Server Error")).Wrap(err)
 		}
 
 		userIDVo, err := userdomain.NewUserID(userID)
 		if err != nil {
-			return nil, apierrors.NewInternalServerError(apierrors.NewErrorString("Internal Server Error"))
+			return nil, apperrors.InternalServerError.SetInfoMessage(apperrors.NewErrorString("Internal Server Error")).Wrap(err)
 		}
 
 		approvedUserIDList = append(approvedUserIDList, userIDVo)
 	}
 
 	if err := rows.Err(); err != nil {
-		return nil, apierrors.NewInternalServerError(apierrors.NewErrorString("Internal Server Error"))
+		return nil, apperrors.InternalServerError.SetInfoMessage(apperrors.NewErrorString("Internal Server Error")).Wrap(err)
 	}
 
 	return approvedUserIDList, nil

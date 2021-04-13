@@ -4,6 +4,7 @@ import (
 	"golang.org/x/xerrors"
 
 	"github.com/paypay3/kakeibo-rest-api-ddd/user-rest-service/apierrors"
+	"github.com/paypay3/kakeibo-rest-api-ddd/user-rest-service/apperrors"
 	"github.com/paypay3/kakeibo-rest-api-ddd/user-rest-service/domain/groupdomain"
 	"github.com/paypay3/kakeibo-rest-api-ddd/user-rest-service/domain/userdomain"
 	"github.com/paypay3/kakeibo-rest-api-ddd/user-rest-service/usecase/gateway"
@@ -203,42 +204,41 @@ func (u *groupUsecase) DeleteGroupApprovedUser(authenticatedUser *input.Authenti
 func (u *groupUsecase) StoreGroupApprovedUser(authenticatedUser *input.AuthenticatedUser, groupInput *input.Group) (*output.ApprovedUser, error) {
 	userID, err := userdomain.NewUserID(authenticatedUser.UserID)
 	if err != nil {
-		return nil, apierrors.NewBadRequestError(apierrors.NewErrorString("ユーザーIDを正しく入力してください"))
+		return nil, apperrors.InvalidParameter.SetInfoMessage(apperrors.NewErrorString("ユーザーIDを正しく入力してください")).Wrap(err)
 	}
 
 	groupID, err := groupdomain.NewGroupID(groupInput.GroupID)
 	if err != nil {
-		return nil, apierrors.NewBadRequestError(apierrors.NewErrorString("グループIDは1以上の整数で指定してください"))
+		return nil, apperrors.InvalidParameter.SetInfoMessage(apperrors.NewErrorString("グループIDは1以上の整数で指定してください")).Wrap(err)
 	}
 
 	if _, err := u.groupRepository.FindUnapprovedUser(groupID, userID); err != nil {
-		var notFoundError *apierrors.NotFoundError
-		if xerrors.As(err, &notFoundError) {
-			return nil, apierrors.NewBadRequestError(apierrors.NewErrorString("こちらのグループには招待されていません"))
+		if xerrors.Is(err, apperrors.NotFound) {
+			return nil, apperrors.InvalidParameter.SetInfoMessage(apperrors.NewErrorString("こちらのグループには招待されていません")).Wrap(err)
 		}
 
-		return nil, err
+		return nil, apperrors.Wrap(err)
 	}
 
 	approvedUserIDList, err := u.groupRepository.FetchApprovedUserIDList(groupID)
 	if err != nil {
-		return nil, err
+		return nil, apperrors.Wrap(err)
 	}
 
 	colorCode, err := groupdomain.NewColorCodeToUser(approvedUserIDList)
 	if err != nil {
-		return nil, apierrors.NewInternalServerError(apierrors.NewErrorString("Internal Server Error"))
+		return nil, apperrors.InternalServerError.SetInfoMessage(apperrors.NewErrorString("Internal Server Error")).Wrap(err)
 	}
 
 	approvedUser := groupdomain.NewApprovedUser(groupID, userID, colorCode)
 
 	if err := u.groupRepository.StoreApprovedUser(approvedUser); err != nil {
-		return nil, err
+		return nil, apperrors.Wrap(err)
 	}
 
 	approvedUserDto, err := u.groupQueryService.FetchApprovedUser(groupID.Value(), userID.Value())
 	if err != nil {
-		return nil, err
+		return nil, apperrors.Wrap(err)
 	}
 
 	return approvedUserDto, nil
